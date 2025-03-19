@@ -55,3 +55,7 @@ The script  accepts the following arguments:
 This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) License - see the [LICENSE](LICENSE) file for details.
 
 You are free to share and adapt the material, provided you attribute the author and do not use it for commercial purposes.
+
+## Curious and Lazy?
+
+I went ahead and asked a few of the top questions. [Check it out](TLDR.md)
