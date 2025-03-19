@@ -51,4 +51,7 @@ The script  accepts the following arguments:
 - `--ask <question>`: Ask a question and get a response from the AI assistant
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) License - see the [LICENSE](LICENSE) file for details.
+
+You are free to share and adapt the material, provided you attribute the author and do not use it for commercial purposes.

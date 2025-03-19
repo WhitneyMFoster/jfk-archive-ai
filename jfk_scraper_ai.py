@@ -78,6 +78,7 @@ def create_vector_db():
     file_names = []
     for file in os.listdir(TEXT_DIR):
         if file.endswith(".txt"):
+            print(f"Vectorizing {file}")
             with open(os.path.join(TEXT_DIR, file), "r", encoding="utf-8") as f:
                 text = f.read()
                 texts.append(text)
