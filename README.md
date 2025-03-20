@@ -11,35 +11,32 @@ This project allows you to download, extract, and analyze JFK assassination reco
 
 ## Prerequisites
 
-- Python 3.8 or later
-- [Tesseract OCR](https://github.com/tesseract-ocr/tesseract)
-  - **macOS:** `brew install tesseract`
-  - **Windows:** Download and install from the [Tesseract GitHub page](https://github.com/tesseract-ocr/tesseract).
 - OpenAI API key (available from [OpenAI](https://platform.openai.com/account/api-keys))
+- Python 3.8 or later
 
 ## Installation and Setup
 
 1. **Clone the repository:**
-    `
+    ```bash
     git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
     cd YOUR_REPO
-    `
+    ```
 
 2. **Set up the virtual environment:**
-    `
+    ```bash
     python3 -m venv venv
     source venv/bin/activate 
-    `
+    ```
 
-3. **Install dependencies:**
-    `
-    pip install -r requirements.txt
-    `
+4. **Install dependencies:**
+    ```bash
+    python3 setup.py
+    ```
 
-4. **Set your OpenAI API key as an environment variable:**
-    `
+5. **Set your OpenAI API key as an environment variable:**
+    ```bash
     export OPENAI_API_KEY="your_api_key" 
-    `
+    ```
 
 ## Usage
 
