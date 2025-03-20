@@ -20,25 +20,25 @@ This project allows you to download, extract, and analyze JFK assassination reco
 ## Installation and Setup
 
 1. **Clone the repository:**
-    `bash
+    `
     git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
     cd YOUR_REPO
     `
 
 2. **Set up the virtual environment:**
-    `bash
+    `
     python3 -m venv venv
-    source venv/bin/activate  # On Windows use 
+    source venv/bin/activate 
     `
 
 3. **Install dependencies:**
-    `bash
+    `
     pip install -r requirements.txt
     `
 
 4. **Set your OpenAI API key as an environment variable:**
-    `bash
-    export OPENAI_API_KEY="your_api_key"  # On Windows use 
+    `
+    export OPENAI_API_KEY="your_api_key" 
     `
 
 ## Usage
