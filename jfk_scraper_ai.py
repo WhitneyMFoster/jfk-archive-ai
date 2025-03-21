@@ -15,7 +15,7 @@ from transformers import GPT2TokenizerFast
 tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
 
 MAX_TOKENS_PER_REQUEST = 3800  # Ensure we leave room for completion
-MAX_COMPLETION_TOKENS = 800  # Adjust as needed
+MAX_COMPLETION_TOKENS = 1200  # Adjust as needed
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
