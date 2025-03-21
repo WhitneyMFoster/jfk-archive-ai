@@ -8,6 +8,14 @@ from sentence_transformers import SentenceTransformer
 from langchain_openai import OpenAI
 import argparse
 import pytesseract
+import re
+from transformers import GPT2TokenizerFast
+
+# Initialize tokenizer to estimate token count
+tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
+
+MAX_TOKENS_PER_REQUEST = 3800  # Ensure we leave room for completion
+MAX_COMPLETION_TOKENS = 800  # Adjust as needed
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -20,13 +28,18 @@ FILENAMES_FILE = "jfk_filenames.npy"
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 API_KEY = os.getenv("OPENAI_API_KEY")
 
+
 # Function: Download PDFs from the JFK release page
 def download_pdfs():
     os.makedirs(PDF_DIR, exist_ok=True)
     response = requests.get(JFK_URL)
     soup = BeautifulSoup(response.text, "html.parser")
     base_url = "https://www.archives.gov"
-    pdf_links = [link["href"] for link in soup.find_all("a", href=True) if link["href"].endswith(".pdf")]
+    pdf_links = [
+        link["href"]
+        for link in soup.find_all("a", href=True)
+        if link["href"].endswith(".pdf")
+    ]
     for link in pdf_links:
         pdf_url = base_url + link
         pdf_name = link.split("/")[-1]
@@ -36,6 +49,7 @@ def download_pdfs():
             pdf_response = requests.get(pdf_url)
             with open(pdf_path, "wb") as pdf_file:
                 pdf_file.write(pdf_response.content)
+
 
 # Function: Extract text from PDFs (uses OCR if needed)
 def extract_text():
@@ -49,6 +63,7 @@ def extract_text():
                 text = extract_text_from_pdf(pdf_path)
                 with open(text_path, "w", encoding="utf-8") as text_file:
                     text_file.write(text)
+
 
 # Function: Extract text from a single PDF, using OCR for image-based pages
 def extract_text_from_pdf(pdf_path):
@@ -67,9 +82,16 @@ def extract_text_from_pdf(pdf_path):
             img_path = f"temp_page_{page_num}.png"
             pix.save(img_path)
             img_text = pytesseract.image_to_string(img_path)
-            text += img_text
+            if img_text.strip():
+                text += img_text
+                text = re.sub(r"[^\x20-\x7E]", " ", text)  # Remove non-ASCII characters
+                text = re.sub(
+                    r"\s+", " ", text
+                ).strip()  # Replace multiple spaces/newlines with a single space
+            # Clean up the temporary image file
             os.remove(img_path)
     return text
+
 
 # Function: Create a vector database from the extracted text files using FAISS
 def create_vector_db():
@@ -91,50 +113,74 @@ def create_vector_db():
     np.save(FILENAMES_FILE, file_names)
     print("Vector database created!")
 
+
 # Function: Ask a question and return a response with cited sources
 def ask_question(question):
     model = SentenceTransformer(EMBEDDING_MODEL)
     index = faiss.read_index(INDEX_FILE)
     file_names = np.load(FILENAMES_FILE)
     query_embedding = model.encode([question])
-    distances, indices = index.search(np.array(query_embedding), 5)
+    distances, indices = index.search(np.array(query_embedding), 10)
     results = []
     sources = []
     for idx in indices[0]:
         file_name = file_names[idx]
         sources.append(f"Source: {file_name}")
         with open(os.path.join(TEXT_DIR, file_name), "r", encoding="utf-8") as f:
-            results.append(f.read())
+            retrieved_text = f.read()
+            results.append(retrieved_text)
     combined_text = " ".join(results)
+
+    # Ensure prompt stays within the model's token limit
+    available_space = MAX_TOKENS_PER_REQUEST - MAX_COMPLETION_TOKENS
+    tokens = tokenizer.encode(combined_text)
+    truncated_tokens = tokens[:available_space]
+    truncated_text = tokenizer.decode(truncated_tokens, skip_special_tokens=True)
+
     print("Context being sent for analysis (first 1000 characters):")
-    print(combined_text[:1000])
-    llm = OpenAI(api_key=API_KEY)
-    response = llm.invoke(
-        f"""You are an advanced research assistant with expert-level knowledge of historical events, intelligence analysis, and forensic investigation.
+    print(truncated_text[:1000])
 
-Context for analysis:
-{combined_text}
+    llm = OpenAI(api_key=API_KEY, max_tokens=MAX_COMPLETION_TOKENS)
 
-Question:
-{question}
+    prompt = f"""
+    You are an advanced research assistant with expert-level knowledge of historical events, intelligence analysis, and forensic investigation.
 
-Your response should:
-- Provide a clear, evidence-based conclusion.
-- Explain your reasoning step by step.
-- Cite the documents used.
-- If the answer is not found, respond with 'Not found in documents.'
+    Context:
+    {truncated_text}
 
-Final Answer:""")
+    Question:
+    {question}
+
+    Your response should:
+    - Provide a clear, evidence-based conclusion.
+    - Explain your reasoning.
+    - Cite the documents where key details were found.
+    - Present counterpoints if applicable.
+    - If the answer is not found, respond with 'Not found in documents.'
+
+    Answer:
+    """
+    response = llm.invoke(prompt)
+
     source_text = "\n\nSources Used:\n" + "\n".join(sources)
     return response + source_text
+
 
 # CLI Handling
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="JFK Archive AI Terminal Interface")
     parser.add_argument("--download", action="store_true", help="Download all JFK PDFs")
-    parser.add_argument("--extract", action="store_true", help="Extract text from downloaded PDFs")
-    parser.add_argument("--index", action="store_true", help="Create a vector database from extracted texts")
-    parser.add_argument("--ask", type=str, help="Ask a question about the JFK documents")
+    parser.add_argument(
+        "--extract", action="store_true", help="Extract text from downloaded PDFs"
+    )
+    parser.add_argument(
+        "--index",
+        action="store_true",
+        help="Create a vector database from extracted texts",
+    )
+    parser.add_argument(
+        "--ask", type=str, help="Ask a question about the JFK documents"
+    )
     args = parser.parse_args()
 
     if args.download:
